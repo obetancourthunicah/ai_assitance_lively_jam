@@ -1,0 +1,6 @@
+{
+  "name": "PresenceLive - Course Attendance & Biometric Face Verification",
+  "description": "Secure, real-time course attendance tracking with Google Blaze client-side face landmark recognition, anti-spoof liveness verification, time-scoped sessions, and educator ledger.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

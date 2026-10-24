@@ -1,0 +1,108 @@
+// Prisma schema for Supabase PostgreSQL
+// For persistent cloud sync when using Supabase backend
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Course {
+  id          String              @id @default(uuid())
+  code        String              @unique
+  name        String
+  term        String
+  description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  students    Student[]
+  sessions    AttendanceSession[]
+  challenges  Challenge[]
+
+  @@map("courses")
+}
+
+model Student {
+  id              String                @id @default(uuid())
+  studentId       String                @unique
+  fullName        String
+  email           String                @unique
+  avatarUrl       String?
+  courseId        String
+  course          Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  faceDescriptor  Json?                 // Normalized landmark coordinates / biometric vector
+  enrolledAt      DateTime              @default(now())
+  attendance      AttendanceRecord[]
+  submissions     ChallengeSubmission[]
+
+  @@map("students")
+}
+
+model AttendanceSession {
+  id              String             @id @default(uuid())
+  courseId        String
+  course          Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  date            String             // YYYY-MM-DD
+  startTime       DateTime           @default(now())
+  endTime         DateTime
+  durationMinutes Int                @default(15)
+  status          String             @default("active") // "scheduled", "active", "closed"
+  passcode        String?
+  records         AttendanceRecord[]
+  challenges      Challenge[]
+  createdAt       DateTime           @default(now())
+
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id               String            @id @default(uuid())
+  sessionId        String
+  session          AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId        String
+  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status           String            // "present", "late", "absent", "excused"
+  timestamp        DateTime          @default(now())
+  confidenceScore  Float             @default(1.0)
+  livenessVerified Boolean           @default(true)
+  markedBy         String            @default("biometric") // "biometric", "educator"
+  educatorNote     String?
+
+  @@unique([sessionId, studentId])
+  @@map("attendance_records")
+}
+
+model Challenge {
+  id             String                @id @default(uuid())
+  courseId       String
+  course         Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sessionId      String?
+  session        AttendanceSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  title          String
+  question       String
+  dueBeforeDate  DateTime
+  createdAt      DateTime              @default(now())
+  submissions    ChallengeSubmission[]
+
+  @@map("challenges")
+}
+
+model ChallengeSubmission {
+  id               String    @id @default(uuid())
+  challengeId      String
+  challenge        Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  studentId        String
+  student          Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answer           String
+  submittedAt      DateTime  @default(now())
+  educatorFeedback String?
+  grade            String?
+
+  @@unique([challengeId, studentId])
+  @@map("challenge_submissions")
+}
